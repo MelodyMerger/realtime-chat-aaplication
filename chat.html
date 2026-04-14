@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium Chat</title>
+<meta name="description" content="A premium real-time chat application with modern UI">
+
+<script src="/socket.io/socket.io.js"></script>
+
+<!-- Google Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+/* ═══════════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════════ */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Inter',sans-serif;
+}
+
+html{ height:100%; }
+
+body{
+  background:linear-gradient(135deg,#080c1a 0%,#0d1f3c 30%,#0a2a2a 60%,#0f1a2e 100%);
+  background-size:400% 400%;
+  animation:gradientShift 20s ease infinite;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  color:#e2e8f0;
+}
+
+@keyframes gradientShift{
+  0%  { background-position:0% 50%; }
+  50% { background-position:100% 50%; }
+  100%{ background-position:0% 50%; }
+}
+
+/* Subtle floating particles effect via pseudo-element */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(2px 2px at 20% 30%, rgba(0,212,170,0.15), transparent),
+    radial-gradient(2px 2px at 40% 70%, rgba(14,165,233,0.1), transparent),
+    radial-gradient(2px 2px at 75% 20%, rgba(0,212,170,0.08), transparent),
+    radial-gradient(2px 2px at 90% 60%, rgba(14,165,233,0.12), transparent),
+    radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.04), transparent);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN CONTAINER — Glassmorphism
+   ═══════════════════════════════════════════════════ */
+.chat-app{
+  width:95%;
+  max-width:1200px;
+  height:92vh;
+  background:rgba(13,20,36,0.72);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:22px;
+  display:flex;
+  overflow:hidden;
+  box-shadow:
+    0 12px 48px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(255,255,255,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  position:relative;
+  z-index:1;
+}
+
+/* ═══════════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════════ */
+.sidebar{
+  width:280px;
+  min-width:280px;
+  background:rgba(6,10,20,0.55);
+  backdrop-filter:blur(14px);
+  border-right:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  flex-direction:column;
+  transition:transform 0.35s cubic-bezier(0.4,0,0.2,1),
+             opacity 0.35s ease;
+  z-index:10;
+}
+
+.sidebar-header{
+  padding:26px 22px 18px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+
+.sidebar h2{
+  color:#00d4aa;
+  font-size:1.1rem;
+  font-weight:600;
+  letter-spacing:0.5px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.sidebar h2::before{
+  content:'';
+  width:10px;
+  height:10px;
+  background:#00d4aa;
+  border-radius:50%;
+  box-shadow:0 0 14px rgba(0,212,170,0.5);
+  animation:pulse 2s ease-in-out infinite;
+  flex-shrink:0;
+}
+
+@keyframes pulse{
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:0.5; transform:scale(0.8); }
+}
+
+.sidebar-user-count{
+  font-size:0.72rem;
+  font-weight:400;
+  color:rgba(255,255,255,0.35);
+  margin-top:8px;
+  letter-spacing:0.3px;
+}
+
+#users{
+  padding:10px 14px;
+  flex:1;
+  overflow-y:auto;
+}
+
+/* Users scrollbar */
+#users::-webkit-scrollbar{ width:4px; }
+#users::-webkit-scrollbar-thumb{ background:rgba(0,212,170,0.2); border-radius:10px; }
+
+.user{
+  padding:12px 14px;
+  border-radius:12px;
+  margin-bottom:5px;
+  background:rgba(255,255,255,0.03);
+  color:#c8d6e5;
+  font-size:0.88rem;
+  font-weight:500;
+  cursor:default;
+  transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border:1px solid transparent;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Avatar circle via pseudo-element */
+.user::before{
+  content:attr(data-initial);
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  background:linear-gradient(135deg,#00d4aa,#0ea5e9);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0.78rem;
+  font-weight:700;
+  color:#060a14;
+  flex-shrink:0;
+}
+
+/* Online indicator dot */
+.user::after{
+  content:'';
+  width:8px;
+  height:8px;
+  background:#22c55e;
+  border-radius:50%;
+  position:absolute;
+  right:14px;
+  box-shadow:0 0 8px rgba(34,197,94,0.5);
+}
+
+.user:hover{
+  background:rgba(0,212,170,0.08);
+  border-color:rgba(0,212,170,0.15);
+  transform:translateX(5px);
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE SIDEBAR TOGGLE
+   ═══════════════════════════════════════════════════ */
+.sidebar-toggle{
+  display:none;
+  position:absolute;
+  top:14px;
+  left:14px;
+  z-index:20;
+  background:rgba(0,212,170,0.12);
+  border:1px solid rgba(0,212,170,0.25);
+  color:#00d4aa;
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:1.15rem;
+  backdrop-filter:blur(10px);
+  transition:all 0.25s ease;
+  align-items:center;
+  justify-content:center;
+}
+.sidebar-toggle:hover{
+  background:rgba(0,212,170,0.22);
+  transform:scale(1.06);
+}
+
+.sidebar-overlay{
+  display:none;
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.55);
+  z-index:9;
+  border-radius:22px;
+}
+
+/* ═══════════════════════════════════════════════════
+   CHAT AREA
+   ═══════════════════════════════════════════════════ */
+.chat-area{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  position:relative;
+}
+
+/* HEADER */
+.header{
+  background:rgba(13,20,36,0.55);
+  backdrop-filter:blur(10px);
+  padding:18px 24px;
+  font-size:1.05rem;
+  font-weight:600;
+  color:#e2e8f0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  letter-spacing:0.2px;
+}
+
+.header-icon{
+  font-size:1.3rem;
+  display:flex;
+}
+
+.header-title{
+  flex:1;
+}
+
+.header-status{
+  font-size:0.68rem;
+  font-weight:500;
+  color:#00d4aa;
+  background:rgba(0,212,170,0.1);
+  padding:4px 12px;
+  border-radius:20px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  animation:statusGlow 3s ease-in-out infinite;
+}
+
+@keyframes statusGlow{
+  0%,100%{ box-shadow:0 0 0 rgba(0,212,170,0); }
+  50%{ box-shadow:0 0 12px rgba(0,212,170,0.15); }
+}
+
+/* ═══════════════════════════════════════════════════
+   MESSAGES AREA
+   ═══════════════════════════════════════════════════ */
+.messages{
+  flex:1;
+  padding:24px 24px 12px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  scroll-behavior:smooth;
+}
+
+/* Custom scrollbar */
+.messages::-webkit-scrollbar{ width:6px; }
+.messages::-webkit-scrollbar-track{ background:transparent; }
+.messages::-webkit-scrollbar-thumb{
+  background:rgba(0,212,170,0.25);
+  border-radius:10px;
+  transition:background 0.2s;
+}
+.messages::-webkit-scrollbar-thumb:hover{ background:rgba(0,212,170,0.45); }
+
+/* ═══════════════════════════════════════════════════
+   MESSAGE BUBBLES
+   ═══════════════════════════════════════════════════ */
+.message{
+  max-width:62%;
+  padding:10px 16px 8px;
+  border-radius:18px;
+  position:relative;
+  animation:messageIn 0.45s cubic-bezier(0.16,1,0.3,1);
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  line-height:1.55;
+  font-size:0.88rem;
+  margin-bottom:2px;
+}
+
+@keyframes messageIn{
+  from{
+    opacity:0;
+    transform:translateY(18px) scale(0.96);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+/* Received (left) */
+.left{
+  background:rgba(25,36,56,0.75);
+  backdrop-filter:blur(6px);
+  align-self:flex-start;
+  border-bottom-left-radius:5px;
+  border:1px solid rgba(255,255,255,0.05);
+}
+
+.left::before{
+  content:'';
+  position:absolute;
+  bottom:0;
+  left:-7px;
+  width:0;
+  height:0;
+  border-style:solid;
+  border-width:0 8px 10px 0;
+  border-color:transparent rgba(25,36,56,0.75) transparent transparent;
+}
+
+/* Sent (right) */
+.right{
+  background:linear-gradient(135deg,#006b52,#009370);
+  align-self:flex-end;
+  border-bottom-right-radius:5px;
+  box-shadow:0 3px 14px rgba(0,107,82,0.3);
+}
+
+.right::before{
+  content:'';
+  position:absolute;
+  bottom:0;
+  right:-7px;
+  width:0;
+  height:0;
+  border-style:solid;
+  border-width:0 0 10px 8px;
+  border-color:transparent transparent transparent #009370;
+}
+
+.message b{
+  font-size:0.76rem;
+  font-weight:600;
+  color:#00d4aa;
+  display:block;
+  margin-bottom:3px;
+}
+
+.right b{
+  color:rgba(255,255,255,0.8);
+}
+
+.time{
+  font-size:0.64rem;
+  opacity:0.45;
+  margin-top:5px;
+  text-align:right;
+  font-weight:400;
+  letter-spacing:0.2px;
+}
+
+/* ═══════════════════════════════════════════════════
+   TYPING INDICATOR
+   ═══════════════════════════════════════════════════ */
+.typing-indicator{
+  padding:4px 28px 8px;
+  min-height:22px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:rgba(255,255,255,0.35);
+  font-size:0.75rem;
+  font-style:italic;
+  opacity:0;
+  transform:translateY(4px);
+  transition:opacity 0.3s ease, transform 0.3s ease;
+  pointer-events:none;
+}
+
+.typing-indicator.active{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.typing-dots{
+  display:flex;
+  gap:3px;
+}
+
+.typing-dots span{
+  width:5px;
+  height:5px;
+  background:rgba(0,212,170,0.55);
+  border-radius:50%;
+  animation:typingBounce 1.4s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(2){ animation-delay:0.15s; }
+.typing-dots span:nth-child(3){ animation-delay:0.3s; }
+
+@keyframes typingBounce{
+  0%,60%,100%{ transform:translateY(0); opacity:0.35; }
+  30%{ transform:translateY(-7px); opacity:1; }
+}
+
+/* ═══════════════════════════════════════════════════
+   FILE PREVIEW BAR
+   ═══════════════════════════════════════════════════ */
+.file-preview{
+  display:none;
+  padding:10px 24px;
+  background:rgba(0,212,170,0.06);
+  border-top:1px solid rgba(0,212,170,0.12);
+  font-size:0.8rem;
+  color:#00d4aa;
+  align-items:center;
+  gap:10px;
+  animation:slideDown 0.25s ease;
+}
+
+@keyframes slideDown{
+  from{ opacity:0; transform:translateY(-6px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+.file-preview.active{
+  display:flex;
+}
+
+.file-preview-icon{
+  font-size:1.1rem;
+}
+
+.file-name{
+  flex:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-weight:500;
+}
+
+.file-remove{
+  background:none;
+  border:none;
+  color:rgba(255,255,255,0.4);
+  cursor:pointer;
+  font-size:1.1rem;
+  padding:2px 6px;
+  border-radius:6px;
+  transition:all 0.2s;
+  line-height:1;
+}
+.file-remove:hover{
+  color:#ff6b6b;
+  background:rgba(255,107,107,0.1);
+}
+
+/* ═══════════════════════════════════════════════════
+   INPUT AREA
+   ═══════════════════════════════════════════════════ */
+.input-area{
+  display:flex;
+  padding:14px 18px;
+  background:rgba(13,20,36,0.55);
+  backdrop-filter:blur(10px);
+  gap:8px;
+  align-items:center;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+
+.input-area input#msg{
+  flex:1;
+  padding:13px 18px;
+  border:2px solid transparent;
+  border-radius:14px;
+  outline:none;
+  background:rgba(25,36,56,0.5);
+  color:#e2e8f0;
+  font-size:0.88rem;
+  font-family:'Inter',sans-serif;
+  transition:all 0.3s ease;
+  min-width:0;
+}
+
+.input-area input#msg:focus{
+  border-color:rgba(0,212,170,0.35);
+  background:rgba(25,36,56,0.7);
+  box-shadow:
+    0 0 0 4px rgba(0,212,170,0.06),
+    0 0 24px rgba(0,212,170,0.08);
+}
+
+.input-area input#msg::placeholder{
+  color:rgba(255,255,255,0.25);
+}
+
+/* Action buttons (emoji, attach) */
+.input-action-btn{
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.04);
+  color:rgba(255,255,255,0.45);
+  font-size:1.2rem;
+  cursor:pointer;
+  transition:all 0.25s cubic-bezier(0.4,0,0.2,1);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  position:relative;
+}
+
+.input-action-btn:hover{
+  background:rgba(0,212,170,0.12);
+  border-color:rgba(0,212,170,0.2);
+  color:#00d4aa;
+  transform:scale(1.08);
+}
+
+.input-action-btn:active{
+  transform:scale(0.95);
+}
+
+/* Send button */
+.send-btn{
+  background:linear-gradient(135deg,#00b894,#00d4aa);
+  border:none;
+  padding:13px 22px;
+  border-radius:14px;
+  cursor:pointer;
+  color:#060a14;
+  font-weight:600;
+  font-size:0.88rem;
+  font-family:'Inter',sans-serif;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-shrink:0;
+  box-shadow:0 4px 18px rgba(0,184,148,0.25);
+  letter-spacing:0.2px;
+}
+
+.send-btn:hover{
+  transform:scale(1.05) translateY(-1px);
+  box-shadow:0 6px 28px rgba(0,184,148,0.4);
+  background:linear-gradient(135deg,#00d4aa,#00f0c0);
+}
+
+.send-btn:active{
+  transform:scale(0.96);
+  box-shadow:0 2px 10px rgba(0,184,148,0.2);
+}
+
+.send-btn .send-icon{
+  font-size:1rem;
+  display:flex;
+  transition:transform 0.25s ease;
+}
+
+.send-btn:hover .send-icon{
+  transform:translateX(2px);
+}
+
+/* ═══════════════════════════════════════════════════
+   EMOJI PICKER
+   ═══════════════════════════════════════════════════ */
+.emoji-picker{
+  display:none;
+  position:absolute;
+  bottom:76px;
+  right:18px;
+  width:320px;
+  max-height:300px;
+  background:rgba(12,18,34,0.96);
+  backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:18px;
+  padding:16px;
+  overflow-y:auto;
+  box-shadow:
+    0 16px 48px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(255,255,255,0.04);
+  z-index:30;
+  animation:emojiSlideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+.emoji-picker.active{
+  display:block;
+}
+
+@keyframes emojiSlideUp{
+  from{ opacity:0; transform:translateY(14px) scale(0.93); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+
+.emoji-picker-title{
+  font-size:0.7rem;
+  font-weight:600;
+  color:rgba(255,255,255,0.35);
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+  margin-bottom:12px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+
+.emoji-grid{
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  gap:2px;
+}
+
+.emoji-grid span{
+  font-size:1.35rem;
+  padding:6px;
+  border-radius:8px;
+  cursor:pointer;
+  text-align:center;
+  transition:all 0.2s ease;
+  user-select:none;
+  line-height:1.3;
+}
+
+.emoji-grid span:hover{
+  background:rgba(0,212,170,0.12);
+  transform:scale(1.25);
+}
+
+.emoji-grid span:active{
+  transform:scale(1.05);
+}
+
+/* Emoji picker scrollbar */
+.emoji-picker::-webkit-scrollbar{ width:4px; }
+.emoji-picker::-webkit-scrollbar-track{ background:transparent; }
+.emoji-picker::-webkit-scrollbar-thumb{ background:rgba(0,212,170,0.2); border-radius:10px; }
+
+/* ═══════════════════════════════════════════════════
+   WELCOME PLACEHOLDER (empty state)
+   ═══════════════════════════════════════════════════ */
+.welcome-msg{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  flex:1;
+  opacity:0.25;
+  text-align:center;
+  gap:12px;
+  padding:40px;
+  pointer-events:none;
+}
+
+.welcome-msg .welcome-icon{
+  font-size:3rem;
+}
+
+.welcome-msg p{
+  font-size:0.9rem;
+  max-width:280px;
+  line-height:1.6;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE — Mobile
+   ═══════════════════════════════════════════════════ */
+@media (max-width:768px){
+  body{ align-items:stretch; }
+
+  .chat-app{
+    width:100%;
+    height:100vh;
+    border-radius:0;
+    max-width:none;
+  }
+
+  .sidebar{
+    position:absolute;
+    left:0;
+    top:0;
+    height:100%;
+    width:280px;
+    min-width:280px;
+    transform:translateX(-100%);
+    opacity:0;
+    border-radius:0;
+    z-index:10;
+    box-shadow:4px 0 24px rgba(0,0,0,0.4);
+  }
+
+  .sidebar.open{
+    transform:translateX(0);
+    opacity:1;
+  }
+
+  .sidebar-overlay.active{
+    display:block;
+  }
+
+  .sidebar-toggle{
+    display:flex;
+  }
+
+  .header{
+    padding-left:64px;
+  }
+
+  .message{
+    max-width:82%;
+  }
+
+  .emoji-picker{
+    width:calc(100vw - 32px);
+    right:16px;
+    bottom:72px;
+  }
+
+  .send-btn .btn-text{
+    display:none;
+  }
+  .send-btn{
+    padding:13px 16px;
+  }
+}
+
+@media (max-width:420px){
+  .input-area{
+    padding:10px 10px;
+    gap:5px;
+  }
+
+  .messages{
+    padding:16px 10px 8px;
+  }
+
+  .input-action-btn{
+    width:38px;
+    height:38px;
+    font-size:1rem;
+    border-radius:10px;
+  }
+
+  .send-btn{
+    padding:12px 14px;
+    border-radius:12px;
+  }
+
+  .input-area input#msg{
+    padding:12px 14px;
+    border-radius:12px;
+    font-size:0.85rem;
+  }
+
+  .header{
+    padding:14px 20px 14px 58px;
+    font-size:0.95rem;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="chat-app">
+
+  <!-- MOBILE SIDEBAR TOGGLE -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+
+  <!-- MOBILE OVERLAY -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Users</h2>
+      <div class="sidebar-user-count" id="userCount">0 online</div>
+    </div>
+    <div id="users"></div>
+  </div>
+
+  <!-- CHAT AREA -->
+  <div class="chat-area">
+
+    <!-- Header -->
+    <div class="header">
+      <span class="header-icon">💬</span>
+      <span class="header-title">Realtime Chat</span>
+      <span class="header-status">Live</span>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages" class="messages">
+      <div class="welcome-msg" id="welcomeMsg">
+        <span class="welcome-icon">💬</span>
+        <p>Start a conversation!<br>Messages will appear here.</p>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <span id="typingText">Someone is typing</span>
+    </div>
+
+    <!-- File preview bar -->
+    <div class="file-preview" id="filePreview">
+      <span class="file-preview-icon">📎</span>
+      <span class="file-name" id="fileName"></span>
+      <button class="file-remove" id="fileRemoveBtn" aria-label="Remove file">✕</button>
+    </div>
+
+    <!-- Emoji picker -->
+    <div class="emoji-picker" id="emojiPicker">
+      <div class="emoji-picker-title">Pick an Emoji</div>
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <button class="input-action-btn" id="emojiBtn" title="Emoji picker">😊</button>
+      <button class="input-action-btn" id="attachBtn" title="Attach file">📎</button>
+      <input type="file" id="fileInput" style="display:none">
+      <input id="msg" type="text" placeholder="Type a message..." autocomplete="off">
+      <button class="send-btn" id="sendBtn">
+        <span class="btn-text">Send</span>
+        <span class="send-icon">➤</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+
+/* ══════════════════════════════════════════════════
+   EXISTING SOCKET.IO LOGIC (preserved exactly)
+   ══════════════════════════════════════════════════ */
+
+const socket = io();
+const username = prompt("Enter your name");
+
+socket.emit("join", username);
+
+const msgBox = document.getElementById("msg");
+const messages = document.getElementById("messages");
+
+function send(){
+  const text = msgBox.value;
+  if(text.trim() === "") return;
+
+  socket.emit("sendMessage", text);
+  msgBox.value="";
+
+  // Hide emoji picker on send
+  document.getElementById('emojiPicker').classList.remove('active');
+}
+
+/* RECEIVE MESSAGE */
+socket.on("message",(data)=>{
+
+  // Hide welcome message on first message
+  const welcome = document.getElementById('welcomeMsg');
+  if(welcome) welcome.remove();
+
+  const div = document.createElement("div");
+
+  div.classList.add("message");
+  div.classList.add(data.user === username ? "right":"left");
+
+  div.innerHTML = `
+    <b>${data.user}</b><br>
+    ${data.text}
+    <div class="time">${data.time}</div>
+  `;
+
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+
+});
+
+/* USERS LIST */
+socket.on("users",(list)=>{
+
+  const userDiv = document.getElementById("users");
+  userDiv.innerHTML="";
+
+  list.forEach(u=>{
+    const div=document.createElement("div");
+    div.className="user";
+    div.setAttribute('data-initial', u.charAt(0).toUpperCase());
+    div.innerText=u;
+    userDiv.appendChild(div);
+  });
+
+  // Update user count
+  const countEl = document.getElementById('userCount');
+  if(countEl) countEl.textContent = list.length + ' online';
+
+});
+
+/* ENTER KEY SEND */
+msgBox.addEventListener("keypress",(e)=>{
+  if(e.key==="Enter") send();
+});
+
+
+/* ══════════════════════════════════════════════════
+   UI ENHANCEMENTS — New additions (non-breaking)
+   ══════════════════════════════════════════════════ */
+
+/* --- Send Button Click --- */
+document.getElementById('sendBtn').addEventListener('click', send);
+
+/* --- EMOJI PICKER --- */
+const emojiList = [
+  '😀','😃','😄','😁','😅','😂','🤣','😊',
+  '😇','🙂','😉','😍','🥰','😘','😋','😛',
+  '😎','🤩','🥳','😏','😒','😞','😢','😭',
+  '😤','🤬','😱','😰','🤔','🤫','🤭','😶',
+  '👍','👎','👏','🙌','🤝','💪','✌️','🤞',
+  '❤️','🧡','💛','💚','💙','💜','🖤','💔',
+  '🔥','⭐','✨','💯','🏆','🎉','🎊','🌟',
+  '🚀','💡','🎵','🎮','☕','🍕','🍔','🎂'
+];
+
+const emojiGrid = document.getElementById('emojiGrid');
+emojiList.forEach(emoji => {
+  const span = document.createElement('span');
+  span.textContent = emoji;
+  span.addEventListener('click', () => {
+    msgBox.value += emoji;
+    msgBox.focus();
+  });
+  emojiGrid.appendChild(span);
+});
+
+document.getElementById('emojiBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('emojiPicker').classList.toggle('active');
+});
+
+/* Close emoji picker when clicking outside */
+document.addEventListener('click', (e) => {
+  const picker = document.getElementById('emojiPicker');
+  const btn = document.getElementById('emojiBtn');
+  if(!picker.contains(e.target) && e.target !== btn){
+    picker.classList.remove('active');
+  }
+});
+
+/* --- ATTACHMENT PREVIEW (UI only) --- */
+document.getElementById('attachBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', function(){
+  if(this.files && this.files[0]){
+    document.getElementById('fileName').textContent = this.files[0].name;
+    document.getElementById('filePreview').classList.add('active');
+  }
+});
+
+document.getElementById('fileRemoveBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').value = '';
+  document.getElementById('filePreview').classList.remove('active');
+});
+
+/* --- MOBILE SIDEBAR TOGGLE --- */
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+
+document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+document.getElementById('sidebarOverlay').addEventListener('click', toggleSidebar);
+
+/* --- TYPING INDICATOR (visual, local feedback) --- */
+/* Emits typing event if server supports it; listens for incoming typing */
+let typingTimer;
+msgBox.addEventListener('input', () => {
+  socket.emit('typing');
+});
+
+socket.on('typing', (msg) => {
+  const indicator = document.getElementById('typingIndicator');
+  const typingText = document.getElementById('typingText');
+  if(msg) typingText.textContent = msg;
+  indicator.classList.add('active');
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    indicator.classList.remove('active');
+  }, 1500);
+});
+
+</script>
+
+</body>
+</html>

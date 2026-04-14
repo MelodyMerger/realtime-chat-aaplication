@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realtime Chat</title>
+<meta name="description" content="A premium real-time chat application">
+
+<!-- Google Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- MOBILE SIDEBAR TOGGLE -->
+  <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+
+  <!-- MOBILE OVERLAY -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebarPanel">
+
+    <div class="sidebar-header">
+      <h3>Online Users</h3>
+      <div class="user-count" id="userCount">0 online</div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input id="search" type="text" placeholder="Search messages..." autocomplete="off">
+    </div>
+
+    <ul id="users"></ul>
+
+  </div>
+
+  <!-- CHAT AREA -->
+  <div class="chat">
+
+    <div class="chat-header">
+      <span class="chat-header-icon">💬</span>
+      <h2>Chat Room</h2>
+      <span class="chat-header-status">Live</span>
+    </div>
+
+    <div id="messages" class="messages-area"></div>
+
+    <p id="typing" class="typing-text"></p>
+
+    <!-- Emoji box -->
+    <div id="emojiBox" class="emoji-box">
+      <div class="emoji-box-title">Emojis</div>
+      <div class="emoji-box-grid">
+        <span>😀</span><span>😃</span><span>😄</span><span>😁</span><span>😅</span><span>😂</span><span>🤣</span><span>😊</span>
+        <span>😇</span><span>🙂</span><span>😉</span><span>😍</span><span>🥰</span><span>😘</span><span>😋</span><span>😛</span>
+        <span>😎</span><span>🤩</span><span>🥳</span><span>😏</span><span>😒</span><span>😞</span><span>😢</span><span>😭</span>
+        <span>👍</span><span>👎</span><span>👏</span><span>🙌</span><span>🤝</span><span>💪</span><span>✌️</span><span>🤞</span>
+        <span>❤️</span><span>🧡</span><span>💛</span><span>💚</span><span>💙</span><span>💜</span><span>🖤</span><span>💔</span>
+        <span>🔥</span><span>⭐</span><span>✨</span><span>💯</span><span>🏆</span><span>🎉</span><span>🎊</span><span>🌟</span>
+        <span>🚀</span><span>💡</span><span>🎵</span><span>🎮</span><span>☕</span><span>🍕</span><span>🍔</span><span>🎂</span>
+      </div>
+    </div>
+
+    <!-- File preview bar -->
+    <div class="file-preview" id="filePreview">
+      <span class="file-preview-icon">📎</span>
+      <span class="file-name" id="fileName"></span>
+      <button class="file-remove" id="fileRemoveBtn">✕</button>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-bar">
+      <button class="action-btn" id="emojiBtn" title="Emoji">😊</button>
+      <button class="action-btn" id="attachBtnUI" title="Attach file">📎</button>
+      <input type="file" id="fileInput" style="display:none">
+      <button class="action-btn" id="recordBtn" title="Record voice">🎤</button>
+      <input id="msg" type="text" placeholder="Type message..." autocomplete="off">
+      <button class="send-btn" onclick="sendMessage()">
+        <span class="btn-label">Send</span>
+        <span class="btn-icon">➤</span>
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+
+<!-- UI enhancement scripts (non-breaking additions) -->
+<script>
+/* Mobile sidebar toggle */
+document.getElementById('sidebarToggle').addEventListener('click', function(){
+  document.getElementById('sidebarPanel').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+});
+document.getElementById('sidebarOverlay').addEventListener('click', function(){
+  document.getElementById('sidebarPanel').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+});
+
+/* Attach button click → file input */
+document.getElementById('attachBtnUI').addEventListener('click', function(){
+  document.getElementById('fileInput').click();
+});
+
+/* File preview */
+document.getElementById('fileInput').addEventListener('change', function(){
+  if(this.files && this.files[0]){
+    document.getElementById('fileName').textContent = this.files[0].name;
+    document.getElementById('filePreview').classList.add('active');
+  }
+});
+document.getElementById('fileRemoveBtn').addEventListener('click', function(){
+  document.getElementById('fileInput').value = '';
+  document.getElementById('filePreview').classList.remove('active');
+});
+</script>
+
+</body>
+</html>
