@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat | Real-Time Messaging</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="theme-toggle">
+    <button class="btn-icon theme-btn" id="themeToggle">🌓</button>
+  </div>
+
+  <div class="app-container glass">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2 style="font-family: 'Poppins', sans-serif; font-size: 1.25rem;">Online Users</h2>
+        <div id="userCount" style="font-size: 0.8rem; color: var(--text-muted);">0 active</div>
+      </div>
+      <div class="user-list" id="usersList">
+        <!-- User items will be rendered here -->
+      </div>
+      <div style="padding: 20px; border-top: 1px solid var(--border);">
+        <button class="btn-icon" id="logoutBtn" style="width: 100%; justify-content: flex-start; gap: 10px;">
+          <span>🚪</span> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Chat -->
+    <main class="chat-main">
+      <header class="chat-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="avatar" id="roomAvatar">R</div>
+          <div>
+            <div id="roomTitle" style="font-weight: 600;">Global Chat</div>
+            <div id="roomStatus" style="font-size: 0.75rem; color: var(--primary);">Real-time connected</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-icon" title="Search Messages">🔍</button>
+          <button class="btn-icon" title="More Options">⋮</button>
+        </div>
+      </header>
+
+      <div class="messages-container" id="messages">
+        <!-- Message bubbles will be rendered here -->
+      </div>
+
+      <div class="typing" id="typingIndicator"></div>
+
+      <footer class="input-area" style="position: relative;">
+        <button class="btn-icon" id="emojiBtn" title="Emoji">😀</button>
+        <button class="btn-icon" id="attachBtn" title="Attach File">📎</button>
+        <input type="file" id="fileInput" style="display: none;">
+        
+        <div id="emojiPicker" class="glass" style="display: none; position: absolute; bottom: 85px; left: 24px; padding: 10px; border-radius: 12px; grid-template-columns: repeat(5, 1fr); gap: 5px; z-index: 100;">
+          <!-- Emojis populated by script -->
+        </div>
+
+        <input type="text" id="msgInput" placeholder="Type a message..." autocomplete="off">
+        
+        <button class="btn-primary" id="sendBtn">
+          <span>Send</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </footer>
+    </main>
+  </div>
+
+  <audio id="notificationSound" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3" preload="auto"></audio>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

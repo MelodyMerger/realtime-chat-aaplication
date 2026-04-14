@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Real-Time Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="theme-toggle">
+    <button class="btn-icon theme-btn" id="themeToggle">🌓</button>
+  </div>
+
+  <div class="auth-container glass">
+    <h1>Welcome</h1>
+    <p>Connect with friends in real-time</p>
+    
+    <div style="margin-bottom: 20px; text-align: left;">
+      <label for="username" style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted);">Your Display Name</label>
+      <input type="text" id="username" placeholder="Enter your name..." style="width: 100%;">
+    </div>
+
+    <div style="margin-bottom: 30px; text-align: left;">
+      <label for="roomName" style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted);">Room Name (e.g. Lobby)</label>
+      <input type="text" id="roomName" placeholder="Enter room name..." style="width: 100%;">
+    </div>
+    
+    <button class="btn-primary" id="loginBtn" style="width: 100%;">
+      Join Chat
+    </button>
+    
+    <div id="error" style="color: var(--accent); margin-top: 15px; font-size: 0.85rem; display: none;">
+      Please enter a valid name.
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+  <script>
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const name = document.getElementById('username').value.trim();
+      const room = document.getElementById('roomName').value.trim();
+      if (name && room) {
+        localStorage.setItem('chat_username', name);
+        localStorage.setItem('chat_room', room);
+        window.location.href = 'chat.html';
+      } else {
+        document.getElementById('error').innerText = 'Please enter both a name and a room.';
+        document.getElementById('error').style.display = 'block';
+      }
+    });
+
+    document.querySelectorAll('#username, #roomName').forEach(el => {
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') document.getElementById('loginBtn').click();
+      });
+    });
+  </script>
+</body>
+</html>
